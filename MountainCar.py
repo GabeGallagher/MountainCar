@@ -32,10 +32,13 @@ Memories are optional and exist in the following structure:
 """
 
 
-def get_memory_take_action(state, pos_rounder, vel_rounder, mem):
+def get_memory_action(state, pos_rounder, vel_rounder, mem=None):
     # apply round threshold
     key = str(get_rounded_state(pos_rounder, state[0])) + ", " + \
           str(get_rounded_state(vel_rounder, state[1]))
+
+    if mem is None:
+        mem = {}
 
     if key in mem:
         mem[key] += 1
@@ -57,18 +60,26 @@ observe the results.
 """
 
 
-def playthrough():
+def playthrough(local_mem, pos_rounder, vel_rounder):
     # look at current position and velocity
     state = game.reset()
-
     # see if has an idea of what to do in this state
-    action = get_memory_take_action(state, 1, 2, memory)
+    local_mem, action = get_memory_action(state, pos_rounder, vel_rounder, local_mem)
+    total_reward = 0
+    is_done = False
 
-    # if it does, decide whether to perform a previous action,
-    # or a random one
-    state, reward, is_done, _ = game.step(action)
+    while not is_done:
+        # if it does, decide whether to perform a previous action,
+        # or a random one
+        state, reward, is_done, _ = game.step(action)
+        local_mem, action = get_memory_action(state, pos_rounder, vel_rounder, local_mem)
 
-    # evaluate move
+        # evaluate move
+        total_reward += reward
+
+    for state in local_mem:
+        for action in state:
+            key = str(state) + ", " + str(action)
 
 
 if __name__ == "__main__":
@@ -78,6 +89,6 @@ if __name__ == "__main__":
     val_func = {}
 
     # play game
-    # playthrough()
+    playthrough(memory, 1, 2)
 
     game.close()
